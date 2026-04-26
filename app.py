@@ -54,7 +54,7 @@ if "step" not in st.session_state:
     st.session_state.step = 0
 
 if "path_travelled" not in st.session_state:
-    st.session_state.path_travelled = [mission_path[0]]  # FIXED
+    st.session_state.path_travelled = [mission_path[0]]
 
 if "running" not in st.session_state:
     st.session_state.running = False
@@ -73,7 +73,6 @@ if st.session_state.running:
     current_position = mission_path[st.session_state.step]
     st.session_state.path_travelled.append(current_position)
     st.session_state.step = (st.session_state.step + 1) % len(mission_path)
-
     time.sleep(1)
     st.rerun()
 else:
@@ -82,14 +81,11 @@ else:
 # ===== MAP =====
 m = folium.Map(location=current_position, zoom_start=16)
 
-# Planned route
 folium.PolyLine(mission_path, color="gray", weight=2, dash_array="5").add_to(m)
 
-# Travelled path (SAFE)
 if len(st.session_state.path_travelled) > 1:
     folium.PolyLine(st.session_state.path_travelled, color="blue", weight=4).add_to(m)
 
-# Drone marker
 folium.Marker(
     location=current_position,
     tooltip="🚁 Drone",
@@ -120,30 +116,45 @@ if camera == "Simulated":
 else:
     st.camera_input("Capture Image")
 
-# ===== AI COMMAND =====
+# ===== AGENT SYSTEM =====
 st.markdown("---")
-st.subheader("📥 Mission Control")
+st.subheader("📥 Mission Control (Agent System)")
 
-command = st.text_input("Enter command (scan, detect fire, rescue...)")
+command = st.text_input("Enter command")
 
 if st.button("▶ Execute Command"):
+
     if command:
-        with st.spinner("AI Processing..."):
-            time.sleep(2)
+
+        st.write("### 🤖 Agent Logs (Verbose Mode)")
+
+        st.write("🧠 Planner Agent: Analyzing command...")
+        time.sleep(1)
+
+        st.write("📡 Navigation Agent: Planning route...")
+        time.sleep(1)
+
+        st.write("🎥 Vision Agent: Activating sensors...")
+        time.sleep(1)
 
         if "fire" in command.lower():
-            st.error("🔥 Fire detected! Emergency alert triggered!")
+            st.write("🔥 Detection Agent: Fire detected!")
+            st.error("🚨 ALERT: Fire detected!")
+        
         elif "scan" in command.lower():
-            st.success("📡 Area scanned successfully")
+            st.write("📡 Scan Agent: Area scanned successfully")
+            st.success("Scan complete")
+
         elif "rescue" in command.lower():
-            st.warning("🚑 Rescue mission activated")
+            st.write("🚑 Rescue Agent: Deploying rescue protocol")
+            st.warning("Rescue mission started")
+
         else:
+            st.write("⚙️ General Agent: Executing command")
             st.info(f"Command executed: {command}")
 
-        st.markdown("### 📊 Mission Report")
-        st.write("✔ Route followed")
-        st.write("✔ No collision risk")
-        st.write("✔ Mission successful")
+        st.write("✅ Mission Completed")
+
     else:
         st.error("Enter command!")
 
