@@ -5,6 +5,14 @@ from streamlit_folium import st_folium
 import pandas as pd
 import numpy as np
 
+# ===== YOLO IMPORTS =====
+from ultralytics import YOLO
+from PIL import Image
+import cv2
+
+# Load YOLO model
+model = YOLO("yolov8n.pt")
+
 # ===== PAGE CONFIG =====
 st.set_page_config(page_title="Drone AI System", layout="wide")
 
@@ -106,15 +114,47 @@ telemetry = pd.DataFrame({
 
 st.line_chart(telemetry)
 
-# ===== CAMERA =====
-st.subheader("📷 Camera Feed")
+# ===== AI CAMERA (YOLO) =====
+st.subheader("📷 AI Camera (Real Object Detection)")
 
-camera = st.selectbox("Camera Mode", ["Simulated", "Webcam"])
+camera_mode = st.selectbox("Camera Mode", ["Upload Image", "Webcam"])
 
-if camera == "Simulated":
-    st.image("https://via.placeholder.com/600x300.png?text=Drone+Camera")
-else:
-    st.camera_input("Capture Image")
+if camera_mode == "Upload Image":
+    uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
+
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Original Image")
+
+        img_array = np.array(image)
+        results = model(img_array)
+
+        result_img = results[0].plot()
+        st.image(result_img, caption="Detection Result")
+
+        st.write("### 🧠 Detected Objects:")
+        for box in results[0].boxes:
+            cls = int(box.cls[0])
+            st.write(f"- {model.names[cls]}")
+
+elif camera_mode == "Webcam":
+    img_file = st.camera_input("Capture Image")
+
+    if img_file:
+        file_bytes = np.asarray(bytearray(img_file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, 1)
+
+        st.image(image, caption="Captured Image")
+
+        results = model(image)
+        result_img = results[0].plot()
+
+        st.image(result_img, caption="Detection Result")
+
+        st.write("### 🧠 Detected Objects:")
+        for box in results[0].boxes:
+            cls = int(box.cls[0])
+            st.write(f"- {model.names[cls]}")
 
 # ===== AGENT SYSTEM =====
 st.markdown("---")
@@ -140,7 +180,7 @@ if st.button("▶ Execute Command"):
         if "fire" in command.lower():
             st.write("🔥 Detection Agent: Fire detected!")
             st.error("🚨 ALERT: Fire detected!")
-        
+
         elif "scan" in command.lower():
             st.write("📡 Scan Agent: Area scanned successfully")
             st.success("Scan complete")
