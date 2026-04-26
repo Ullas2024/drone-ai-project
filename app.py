@@ -54,7 +54,7 @@ if "step" not in st.session_state:
     st.session_state.step = 0
 
 if "path_travelled" not in st.session_state:
-    st.session_state.path_travelled = []
+    st.session_state.path_travelled = [mission_path[0]]  # FIXED
 
 if "running" not in st.session_state:
     st.session_state.running = False
@@ -73,6 +73,7 @@ if st.session_state.running:
     current_position = mission_path[st.session_state.step]
     st.session_state.path_travelled.append(current_position)
     st.session_state.step = (st.session_state.step + 1) % len(mission_path)
+
     time.sleep(1)
     st.rerun()
 else:
@@ -81,9 +82,14 @@ else:
 # ===== MAP =====
 m = folium.Map(location=current_position, zoom_start=16)
 
+# Planned route
 folium.PolyLine(mission_path, color="gray", weight=2, dash_array="5").add_to(m)
-folium.PolyLine(st.session_state.path_travelled, color="blue", weight=4).add_to(m)
 
+# Travelled path (SAFE)
+if len(st.session_state.path_travelled) > 1:
+    folium.PolyLine(st.session_state.path_travelled, color="blue", weight=4).add_to(m)
+
+# Drone marker
 folium.Marker(
     location=current_position,
     tooltip="🚁 Drone",
