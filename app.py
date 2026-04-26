@@ -1,13 +1,15 @@
 import streamlit as st
 import time
+import folium
+from streamlit_folium import st_folium
 import pandas as pd
 import numpy as np
 
-# Page config
+# ===== PAGE CONFIG =====
 st.set_page_config(page_title="Drone AI System", layout="wide")
 
 st.title("🚁 Autonomous Drone AI Control Center")
-st.caption("Final Year Project | Agentic AI + Real-Time Monitoring")
+st.caption("AI-Based Real-Time Drone Monitoring System")
 
 st.markdown("---")
 
@@ -22,8 +24,8 @@ mode = st.sidebar.selectbox(
 altitude = st.sidebar.slider("Altitude (m)", 10, 500, 120)
 speed = st.sidebar.slider("Speed (km/h)", 10, 120, 40)
 
-battery_level = st.sidebar.slider("Battery Level (%)", 0, 100, 85)
-st.sidebar.progress(battery_level)
+battery = st.sidebar.slider("Battery (%)", 0, 100, 85)
+st.sidebar.progress(battery)
 
 takeoff = st.sidebar.button("🚀 Takeoff")
 land = st.sidebar.button("🛬 Land")
@@ -36,63 +38,106 @@ col3.metric("🧠 AI", "Online")
 
 st.markdown("---")
 
-# ===== LIVE MAP (MOVING) =====
-st.subheader("🗺️ Live Drone Tracking")
+# ===== MISSION ROUTE =====
+st.subheader("🗺️ Mission Route Tracking")
 
-# simulate movement
-lat = 12.97 + np.random.randn() * 0.002
-lon = 77.59 + np.random.randn() * 0.002
+mission_path = [
+    (12.9716, 77.5946),
+    (12.9720, 77.5955),
+    (12.9730, 77.5950),
+    (12.9725, 77.5938),
+    (12.9716, 77.5946)
+]
 
-map_data = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-st.map(map_data)
+# ===== SESSION STATE =====
+if "step" not in st.session_state:
+    st.session_state.step = 0
 
-# ===== LIVE CHART =====
+if "path_travelled" not in st.session_state:
+    st.session_state.path_travelled = []
+
+if "running" not in st.session_state:
+    st.session_state.running = False
+
+# ===== CONTROL BUTTONS =====
+colA, colB = st.columns(2)
+
+if colA.button("▶️ Start Mission"):
+    st.session_state.running = True
+
+if colB.button("⏸️ Pause Mission"):
+    st.session_state.running = False
+
+# ===== DRONE MOVEMENT =====
+if st.session_state.running:
+    current_position = mission_path[st.session_state.step]
+    st.session_state.path_travelled.append(current_position)
+    st.session_state.step = (st.session_state.step + 1) % len(mission_path)
+    time.sleep(1)
+    st.rerun()
+else:
+    current_position = mission_path[st.session_state.step]
+
+# ===== MAP =====
+m = folium.Map(location=current_position, zoom_start=16)
+
+folium.PolyLine(mission_path, color="gray", weight=2, dash_array="5").add_to(m)
+folium.PolyLine(st.session_state.path_travelled, color="blue", weight=4).add_to(m)
+
+folium.Marker(
+    location=current_position,
+    tooltip="🚁 Drone",
+    icon=folium.Icon(color="red")
+).add_to(m)
+
+st_folium(m, width=700, height=500)
+
+st.success(f"📍 Current Location: {current_position}")
+
+# ===== TELEMETRY =====
 st.subheader("📊 Drone Telemetry")
 
-chart_data = pd.DataFrame({
-    "Altitude": np.random.randint(100, altitude, 10),
-    "Battery": np.random.randint(20, battery_level, 10)
+telemetry = pd.DataFrame({
+    "Altitude": np.random.randint(80, altitude, 10),
+    "Battery": np.random.randint(20, battery, 10)
 })
 
-st.line_chart(chart_data)
+st.line_chart(telemetry)
 
 # ===== CAMERA =====
-st.subheader("📷 Live Camera Feed")
+st.subheader("📷 Camera Feed")
 
-camera_option = st.selectbox("Camera Source", ["Simulated Feed", "Use Webcam"])
+camera = st.selectbox("Camera Mode", ["Simulated", "Webcam"])
 
-if camera_option == "Simulated Feed":
-    st.image("https://via.placeholder.com/600x300.png?text=Drone+Camera+Live")
-
+if camera == "Simulated":
+    st.image("https://via.placeholder.com/600x300.png?text=Drone+Camera")
 else:
-    img = st.camera_input("Capture Live Feed")
+    st.camera_input("Capture Image")
 
 # ===== AI COMMAND =====
 st.markdown("---")
 st.subheader("📥 Mission Control")
 
-command = st.text_input("Enter command (scan, detect fire, patrol...)")
+command = st.text_input("Enter command (scan, detect fire, rescue...)")
 
-if st.button("▶ Execute Mission"):
+if st.button("▶ Execute Command"):
     if command:
-        with st.spinner("AI thinking..."):
+        with st.spinner("AI Processing..."):
             time.sleep(2)
 
-        # simple intelligent response
         if "fire" in command.lower():
-            st.error("🔥 Fire detected! Alert sent!")
+            st.error("🔥 Fire detected! Emergency alert triggered!")
         elif "scan" in command.lower():
             st.success("📡 Area scanned successfully")
         elif "rescue" in command.lower():
-            st.warning("🚑 Rescue mode activated")
+            st.warning("🚑 Rescue mission activated")
         else:
             st.info(f"Command executed: {command}")
 
         st.markdown("### 📊 Mission Report")
-        st.write("✔ Path optimized")
+        st.write("✔ Route followed")
         st.write("✔ No collision risk")
-        st.write("✔ Task completed")
-
+        st.write("✔ Mission successful")
     else:
         st.error("Enter command!")
 
@@ -104,4 +149,4 @@ if land:
     st.warning("🛬 Drone Landing...")
 
 st.markdown("---")
-st.caption("🚁 AI Drone System | Built using Streamlit + Python")
+st.caption("🚁 Final Year Project | AI Drone Monitoring System")
